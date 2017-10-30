@@ -244,8 +244,12 @@ def pollShades() {
     log.debug "pollShades: updateBattery = ${updateBattery}"
     
     getShadeDevices().eachWithIndex{ device,index -> 
-        def shadeId = dniToShadeId(device.deviceNetworkId)
-    	runIn(index * 5, "pollShadeDelayed", [overwrite: false, data: [shadeId: shadeId, updateBattery: updateBattery]])
+    	if (device != null) {
+	        def shadeId = dniToShadeId(device.deviceNetworkId)
+	    	runIn(index * 5, "pollShadeDelayed", [overwrite: false, data: [shadeId: shadeId, updateBattery: updateBattery]])
+        } else {
+        	log.debug "Got null shade device, index ${index}"
+        }
     }
 }
 
@@ -528,13 +532,18 @@ void shadesCallback(physicalgraph.device.HubResponse hubResponse) {
 // CORE API
 
 def callPowerView(String path, callback, Map query = null, String method = "GET", String body = null) {    
+	def host = "${settings?.powerviewIPAddress}:80"
+    def fullPath = "/api/${path}"
+    
+    log.debug "callPowerView: url = 'http://${host}${fullPath}', method = '${method}', body = '${body}', query = ${query}"
+    
     def headers = [
-    	"HOST" : "${settings?.powerviewIPAddress}:80",
+    	"HOST" : host,
     ]
     
     def hubAction = new physicalgraph.device.HubAction(
         method: method,
-        path: "/api/${path}",
+        path: fullPath,
         headers: headers,
         query: query,
         body: body,
